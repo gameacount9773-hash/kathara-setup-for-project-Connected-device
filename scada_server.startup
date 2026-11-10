@@ -1,0 +1,7 @@
+# 1. 啟動 PostgreSQL
+service postgresql start
+sleep 2
+su - postgres -c "psql -f /shared/init.sql"
+
+# 2. 啟動 Grafana 網頁伺服器 (Port 3000)
+service grafana-server start
