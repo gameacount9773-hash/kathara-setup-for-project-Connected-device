@@ -1,7 +1,9 @@
-# 1. 啟動 PostgreSQL
+# 1. 啟動 PostgreSQL 服務
 service postgresql start
 sleep 2
+
+# 2. 自動執行建庫建表腳本
 su - postgres -c "psql -f /shared/init.sql"
 
-# 2. 啟動 Grafana 網頁伺服器 (Port 3000)
-service grafana-server start
+# 3. 開機自動啟動 Grafana 伺服器 (放背景執行)
+/usr/sbin/grafana-server --homepath /usr/share/grafana --config /etc/grafana/grafana.ini web &
