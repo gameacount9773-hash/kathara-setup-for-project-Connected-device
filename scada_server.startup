@@ -1,9 +1,16 @@
-# 1. 啟動 PostgreSQL 服務
+ip addr add 192.168.1.20/24 dev eth0
+ip link set up dev eth0
+ip route add default via 192.168.1.1
+
+# === 新增這兩行：開放 PostgreSQL 允許外部網路連線 ===
+sed -i "s/#listen_addresses = 'localhost'/listen_addresses = '*'/g" /etc/postgresql/*/main/postgresql.conf
+echo "host all all 192.168.1.0/24 trust" >> /etc/postgresql/*/main/pg_hba.conf
+# =====================================================
+
+# 啟動 PostgreSQL 並初始化資料表
 service postgresql start
 sleep 2
-
-# 2. 自動執行建庫建表腳本
 su - postgres -c "psql -f /shared/init.sql"
 
-# 3. 開機自動啟動 Grafana 伺服器 (放背景執行)
+# 啟動 Grafana 監控介面 (Port 3000)
 /usr/sbin/grafana-server --homepath /usr/share/grafana --config /etc/grafana/grafana.ini web &
