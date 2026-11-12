@@ -3,7 +3,7 @@ FROM kathara/base
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl ca-certificates gnupg postgresql && \
+    apt-get install -y --no-install-recommends curl ca-certificates gnupg postgresql mosquitto mosquitto-clients && \
     mkdir -p /etc/apt/keyrings && \
     curl -fsSL https://apt.grafana.com/gpg.key | gpg --dearmor > /etc/apt/keyrings/grafana.gpg && \
     echo "deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com stable main" > /etc/apt/sources.list.d/grafana.list && \
