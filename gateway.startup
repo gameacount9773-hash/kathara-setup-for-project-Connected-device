@@ -1,11 +1,28 @@
+# 1. 設定 Management VLAN 的固定 IP 與內部網段路由
 ip addr add 192.168.1.10/24 dev eth0
 ip link set up dev eth0
-ip route add default via 192.168.1.1
+ip route add 192.168.10.0/24 via 192.168.1.1
+ip route add 192.168.20.0/24 via 192.168.1.1
 
-# 啟動 MQTT Broker 並允許所有連線
+# ==========================================
+# 2. 啟動 MQTT Broker (Mosquitto)
+# ==========================================
+# 建立缺少的 pid 資料夾並設定擁有者
+mkdir -p /run/mosquitto
+chown mosquitto:mosquitto /run/mosquitto
+
 echo "allow_anonymous true" > /etc/mosquitto/mosquitto.conf
 echo "listener 1883 0.0.0.0" >> /etc/mosquitto/mosquitto.conf
+
+# 現在啟動就不會報錯了
 service mosquitto start
 
-# 啟動 Node-RED
-node-red /shared/flows.json &
+# ==========================================
+# 3. 啟動 Node-RED (指定持久化資料夾)
+# ==========================================
+# 在 shared 裡建立一個專屬資料夾來放 Node-RED 的設定
+mkdir -p /shared/node-red-data
+
+# 啟動 Node-RED，並用 -u 參數強制它把設定存到 /shared/node-red-data
+# 這樣你的 flows.json 就會活在實體電腦裡，重開機絕對不會不見！
+node-red -u /shared/node-red-data &

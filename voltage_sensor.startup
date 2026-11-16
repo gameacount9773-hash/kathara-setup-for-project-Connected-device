@@ -1,0 +1,11 @@
+# 先把網卡關閉，才能改 MAC
+ip link set dev eth0 down
+# 強制指定 MAC 位址 (請對應你的設計，這台是 02:42:c0:a8:14:11)
+ip link set dev eth0 address 02:42:c0:a8:14:11
+# 重新啟用網卡
+ip link set up dev eth0
+
+# 討 IP (現在 Router 絕對認得出這個 MAC 了)
+dhclient eth0 &
+sleep 5
+python3 /root/voltage_simulation.py &

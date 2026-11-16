@@ -4,7 +4,6 @@ ip addr add 192.168.10.1/24 dev eth1
 ip link set up dev eth1
 ip addr add 192.168.20.1/24 dev eth2
 ip link set up dev eth2
-sysctl -w net.ipv4.ip_forward=1
 
 # 啟動 DHCP 伺服器並綁定所有 MAC 租約
 dnsmasq \
