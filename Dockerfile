@@ -2,8 +2,13 @@ FROM kathara/base
 
 ENV DEBIAN_FRONTEND=noninteractive
 
+# 安裝所有必備套件 (包含資料庫、MQTT Broker、Python3、Node-RED 與 Grafana)
 RUN apt-get update && \
-    apt-get install -y --no-install-recommends curl ca-certificates gnupg postgresql mosquitto mosquitto-clients && \
+    apt-get install -y --no-install-recommends \
+    curl ca-certificates gnupg \
+    postgresql \
+    mosquitto mosquitto-clients \
+    python3 iputils-ping && \
     mkdir -p /etc/apt/keyrings && \
     curl -fsSL https://apt.grafana.com/gpg.key | gpg --dearmor > /etc/apt/keyrings/grafana.gpg && \
     echo "deb [signed-by=/etc/apt/keyrings/grafana.gpg] https://apt.grafana.com stable main" > /etc/apt/sources.list.d/grafana.list && \

@@ -1,0 +1,6 @@
+ip link set up dev eth0
+dhclient eth0 &
+sleep 10
+
+# 在背景執行影像辨識的模擬腳本
+python3 /root/vision_processing.py &

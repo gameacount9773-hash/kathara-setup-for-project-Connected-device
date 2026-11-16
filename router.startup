@@ -20,4 +20,5 @@ dnsmasq \
   --dhcp-host=02:42:c0:a8:14:13,192.168.20.13,weight_sensor \
   --dhcp-host=02:42:c0:a8:14:14,192.168.20.14,magnetic_sensor \
   --dhcp-host=02:42:c0:a8:14:15,192.168.20.15,vision_sensor \
+  --dhcp-host=02:42:c0:a8:14:16,192.168.20.16,vision_edge_pc \
   --bind-interfaces
