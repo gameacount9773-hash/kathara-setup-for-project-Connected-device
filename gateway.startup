@@ -18,11 +18,37 @@ echo "listener 1883 0.0.0.0" >> /etc/mosquitto/mosquitto.conf
 service mosquitto start
 
 # ==========================================
-# 3. 啟動 Node-RED (指定持久化資料夾)
+# 3. 啟動 n8n (指定持久化資料夾)
 # ==========================================
-# 在 shared 裡建立一個專屬資料夾來放 Node-RED 的設定
-mkdir -p /shared/node-red-data
+# 在 shared 裡建立專屬資料夾來放 n8n 的設定與 Workflows
+mkdir -p /shared/n8n-data
 
-# 啟動 Node-RED，並用 -u 參數強制它把設定存到 /shared/node-red-data
-# 這樣你的 flows.json 就會活在實體電腦裡，重開機絕對不會不見！
-node-red -u /shared/node-red-data &
+export N8N_USER_FOLDER="/shared/n8n-data"
+export N8N_DIAGNOSTICS_ENABLED=false
+export N8N_PERSONALIZATION_ENABLED=false
+export N8N_LISTEN_ADDRESS="0.0.0.0"  # <- 補上這一行
+
+if [ ! -f "/shared/n8n-data/database.sqlite" ] && [ -f "/shared/flow.json" ]; then
+    echo "匯入初始 Workflow..."
+    n8n import:workflow --input=/shared/flow.json
+    
+    # 強制將所有匯入的 Workflow 狀態設為 Active (Published)
+    n8n update:workflow --all --active=true
+fi
+
+n8n start &
+
+# ==========================================
+# 4. 自動註冊 n8n Owner 帳號 (防呆自動化)
+# ==========================================
+(
+  # 每兩秒戳一次 5678 port，直到有回應代表 n8n 開機完畢
+  while ! curl -s http://localhost:5678 > /dev/null; do
+    sleep 2
+  done
+  
+  # 呼叫 n8n 內部 API，自動填入帳號密碼並建立 Owner
+  curl -s -X POST http://localhost:5678/rest/owner/setup \
+       -H "Content-Type: application/json" \
+       -d '{"email":"admin@local.test","firstName":"IoT","lastName":"Admin","password":"Admin1234"}'
+) &

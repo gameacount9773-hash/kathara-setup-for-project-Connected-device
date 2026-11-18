@@ -22,16 +22,16 @@ RUN mkdir -p /etc/apt/keyrings && \
 # 5. 匯入 Node.js 官方套件庫
 RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
 
-# 6. 執行總安裝
+# 6. 執行總安裝 (新增 iptables 供資安組設定防火牆)
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     postgresql-14 timescaledb-2-postgresql-14 \
     mosquitto mosquitto-clients \
-    python3 iputils-ping \
+    python3 iputils-ping iptables \
     nodejs grafana
 
-# 7. 安裝 Node-RED 並清理快取
-RUN npm install -g --unsafe-perm node-red && \
+# 7. 安裝 n8n 並清理快取 (取代 Node-RED)
+RUN npm install -g --unsafe-perm n8n && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 # run: docker build -t my-iot-node .
