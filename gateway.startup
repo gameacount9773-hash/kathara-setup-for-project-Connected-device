@@ -18,11 +18,15 @@ echo "listener 1883 0.0.0.0" >> /etc/mosquitto/mosquitto.conf
 service mosquitto start
 
 # ==========================================
-# 3. 啟動 Node-RED (指定持久化資料夾)
+# 3. 啟動 n8n (指定持久化資料夾)
 # ==========================================
-# 在 shared 裡建立一個專屬資料夾來放 Node-RED 的設定
-mkdir -p /shared/node-red-data
+# 在 shared 裡建立專屬資料夾來放 n8n 的設定與 Workflows
+mkdir -p /shared/n8n-data
 
-# 啟動 Node-RED，並用 -u 參數強制它把設定存到 /shared/node-red-data
-# 這樣你的 flows.json 就會活在實體電腦裡，重開機絕對不會不見！
-node-red -u /shared/node-red-data &
+# 設定環境變數讓 n8n 把資料存在 shared 資料夾，並關閉不必要的 telemetry
+export N8N_USER_FOLDER="/shared/n8n-data"
+export N8N_DIAGNOSTICS_ENABLED=false
+export N8N_PERSONALIZATION_ENABLED=false
+
+# 啟動 n8n
+n8n start &
