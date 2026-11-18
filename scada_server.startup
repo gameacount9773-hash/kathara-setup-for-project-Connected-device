@@ -9,7 +9,7 @@ sed -i "s/#listen_addresses = 'localhost'/listen_addresses = '*'/g" /etc/postgre
 echo "host all all 192.168.1.0/24 trust" >> /etc/postgresql/*/main/pg_hba.conf
 # 關鍵新增：讓 PostgreSQL 啟動時掛載 TimescaleDB
 sed -i "s/#shared_preload_libraries = ''/shared_preload_libraries = 'timescaledb'/g" /etc/postgresql/*/main/postgresql.conf
-# =====================================================
+# ====================================================
 
 # 啟動 PostgreSQL 並初始化資料表
 service postgresql start
