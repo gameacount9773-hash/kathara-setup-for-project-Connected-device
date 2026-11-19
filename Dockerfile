@@ -9,3 +9,4 @@ RUN apt-get update && \
     python3 iputils-ping iptables curl && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
+    #docker build -t my-iot-node .
