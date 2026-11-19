@@ -1,0 +1,99 @@
+{
+  "name": "My workflow",
+  "nodes": [
+    {
+      "parameters": {
+        "topics": "voltcycle/#",
+        "options": {}
+      },
+      "id": "32251290-26a7-4b42-b4de-a64c0b9dda5d",
+      "name": "MQTT Trigger1",
+      "type": "n8n-nodes-base.mqttTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        256
+      ],
+      "credentials": {
+        "mqtt": {
+          "id": "MNar7LKNT57frOjV",
+          "name": "MQTT account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json.message;\nconst data = typeof raw === 'string' ? JSON.parse(raw) : raw;\n\n// 1. 取得感測器名稱\nconst sensorId = data.sensor_id || data.sensor_name || data.sensor;\n\n// 2. 依序尋找可能的數值或狀態欄位\nlet rawVal = data.value ?? data.temperature ?? data.weight ?? data.voltage \n          ?? data.vibration ?? data.co ?? data.h2 ?? data.hf \n          ?? data.smoke ?? data.magnetic ?? data.status ?? data.result \n          ?? data.condition ?? data.classification ?? data.class;\n\n// 若以上都沒對到，自動抓 JSON 裡第一個不是 sensor_id / seq / timestamp 的欄位\nif (rawVal === undefined) {\n  const ignoreKeys = new Set(['sensor_id', 'sensor_name', 'sensor', 'seq', 'sequence_number', 'timestamp', 'time', 'ip', 'mac']);\n  const valKey = Object.keys(data).find(k => !ignoreKeys.has(k));\n  if (valKey) rawVal = data[valKey];\n}\n\n// 3. 轉成數字（避免文字變成 NaN -> null）\nlet numVal = Number(rawVal);\nif (Number.isNaN(numVal)) {\n  const str = String(rawVal).toLowerCase();\n  if (['ok', 'normal', 'pass', 'true', 'yes', 'li-ion'].includes(str)) {\n    numVal = 1;\n  } else if (['damaged', 'error', 'rejected', 'fail', 'false', 'no'].includes(str)) {\n    numVal = 0;\n  } else {\n    numVal = -1; // 其他未知文字分類的預設代碼\n  }\n}\n\n\nreturn [{\n  json: {\n    sensor_id: sensorId,\n    seq: Number(data.seq ?? data.sequence_number ?? 0),\n    value: numVal,\n    battery_type: data.battery_type ?? null,\n    confidence_score: data.confidence_score !== undefined ? Number(data.confidence_score) : null,\n    raw_condition: data.condition ?? null\n  }\n}];"
+      },
+      "id": "165806ba-fcce-4b09-95ad-4f80c88b83b5",
+      "name": "Code1",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        224,
+        256
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO measurement (time, sensor_id, sequence_number, value, battery_type, confidence_score, raw_condition)\nVALUES (\n  NOW(),\n  (SELECT sensor_id FROM sensor WHERE name = $1),\n  $2,\n  $3,\n  $4,\n  $5,\n  $6\n);",
+        "options": {
+          "queryReplacement": "=={{ $json.sensor_id }}, {{ $json.seq }}, {{ $json.value }}, {{ $json.battery_type }}, {{ $json.confidence_score }}, {{ $json.raw_condition }}"
+        }
+      },
+      "id": "fe5a1420-4c4d-4807-809e-3aa625e3d69f",
+      "name": "PostgreSQL1",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.3,
+      "position": [
+        448,
+        256
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "2MIA13PjEBMIquSC",
+          "name": "Postgres account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "MQTT Trigger1": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "PostgreSQL1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "548416c4-13c6-4ae5-8cbf-bd93785cfcc1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "df223045777efb8cc9db1bb388eafe0bf42d52da397bf7b76f97cc64e3f58535"
+  },
+  "nodeGroups": [],
+  "id": "z3QREDnv5lNKubTQ",
+  "tags": []
+}
