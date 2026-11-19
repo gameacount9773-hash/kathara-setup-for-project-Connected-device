@@ -1,5 +1,5 @@
 services:
-  # 1. 資料庫伺服器
+  # 1. Database server (PostgreSQL + TimescaleDB)
   timescaledb:
     image: timescale/timescaledb:latest-pg14
     container_name: iot_database
@@ -12,7 +12,7 @@ services:
       - ./db-data:/var/lib/postgresql/data
       - ./shared/init.sql:/docker-entrypoint-initdb.d/init.sql
 
-  # 2. 儀表板伺服器
+  # 2. Dashboard server (Grafana)
   grafana:
     image: grafana/grafana:latest
     container_name: iot_grafana
@@ -23,16 +23,16 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=admin
     volumes:
       - ./grafana-data:/var/lib/grafana
+      - ./shared/grafana-datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml
     depends_on:
       - timescaledb
 
-
- # 4. n8n 初始化自動化腳本 (跑完會自動結束)
-  n8n-setup:
+  # 3. Workflow automation server (n8n + auto-initialization)
+  n8n:
     image: n8nio/n8n:latest
-    container_name: iot_n8n_setup
-    depends_on:
-      - n8n
+    container_name: iot_n8n
+    ports:
+      - "5678:5678"
     environment:
       - DB_TYPE=postgresdb
       - DB_POSTGRESDB_HOST=timescaledb
@@ -42,29 +42,47 @@ services:
     volumes:
       - ./n8n-data:/home/node/.n8n
       - ./shared:/shared
+    depends_on:
+      - timescaledb
     entrypoint: ["/bin/sh", "-c"]
     command:
       - |
-        echo '等待 n8n 啟動 (15秒)...'
-        sleep 15
-        echo '自動註冊 Admin 帳號...'
-        node -e "fetch('http://n8n:5678/rest/owner/setup', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({email:'admin@local.test',firstName:'IoT',lastName:'Admin',password:'Admin1234'})}).catch(e => console.log('帳號已存在'))"
-        
-        echo '自動匯入 Workflow...'
-        n8n import:workflow --input=/shared/flow.json
-        
-        echo '強制啟用所有 Workflow (Published)...'
-        # 透過 sqlite 指令直接把資料庫裡的 active 欄位改為 true
-        node -e "
-          const { execSync } = require('child_process');
-          try {
-            // 直接呼叫 n8n 內建的指令或列出 workflow ID 來啟用
-            execSync('n8n update:workflow --all --active=true', { stdio: 'inherit' });
-          } catch(err) {
-            console.log('更新狀態');
-          }
-        "
-        echo '全自動初始化完成！'
+        (
+          if [ ! -f /home/node/.n8n/.initialized ]; then
+            echo "Waiting for n8n to start (15s)..."
+            sleep 15
+
+            echo "Creating owner account..."
+            node -e "fetch('http://localhost:5678/rest/owner/setup', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({email:'admin@local.test',firstName:'IoT',lastName:'Admin',password:'Admin1234'})}).catch(() => console.log('Owner account already exists'))"
+
+            if [ -f /shared/credentials.json ]; then
+              echo "Importing credentials..."
+              n8n import:credentials --input=/shared/credentials.json
+            fi
+
+            echo "Importing workflow..."
+            n8n import:workflow --input=/shared/flow.json
+
+            echo "Publishing workflow..."
+            node -e '
+              const fs = require("fs");
+              const { execSync } = require("child_process");
+              const data = JSON.parse(fs.readFileSync("/shared/flow.json", "utf8"));
+              const workflows = Array.isArray(data) ? data : [data];
+              for (const wf of workflows) {
+                if (wf.id) {
+                  execSync("n8n publish:workflow --id=" + wf.id, { stdio: "inherit" });
+                }
+              }
+            '
+
+            touch /home/node/.n8n/.initialized
+            echo "Auto-initialization complete!"
+          fi
+        ) &
+        exec n8n start
+
+# Common commands:
 # docker-compose down --remove-orphans
-#docker-compose up -d
-#docker logs -f iot_n8n_setup  
+# docker-compose up -d
+# docker logs -f iot_n8n
