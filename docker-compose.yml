@@ -1,0 +1,70 @@
+services:
+  # 1. 資料庫伺服器
+  timescaledb:
+    image: timescale/timescaledb:latest-pg14
+    container_name: iot_database
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_PASSWORD=1234
+      - POSTGRES_DB=factory_db
+    volumes:
+      - ./db-data:/var/lib/postgresql/data
+      - ./shared/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  # 2. 儀表板伺服器
+  grafana:
+    image: grafana/grafana:latest
+    container_name: iot_grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - ./grafana-data:/var/lib/grafana
+    depends_on:
+      - timescaledb
+
+
+ # 4. n8n 初始化自動化腳本 (跑完會自動結束)
+  n8n-setup:
+    image: n8nio/n8n:latest
+    container_name: iot_n8n_setup
+    depends_on:
+      - n8n
+    environment:
+      - DB_TYPE=postgresdb
+      - DB_POSTGRESDB_HOST=timescaledb
+      - DB_POSTGRESDB_DATABASE=factory_db
+      - DB_POSTGRESDB_USER=postgres
+      - DB_POSTGRESDB_PASSWORD=1234
+    volumes:
+      - ./n8n-data:/home/node/.n8n
+      - ./shared:/shared
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        echo '等待 n8n 啟動 (15秒)...'
+        sleep 15
+        echo '自動註冊 Admin 帳號...'
+        node -e "fetch('http://n8n:5678/rest/owner/setup', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({email:'admin@local.test',firstName:'IoT',lastName:'Admin',password:'Admin1234'})}).catch(e => console.log('帳號已存在'))"
+        
+        echo '自動匯入 Workflow...'
+        n8n import:workflow --input=/shared/flow.json
+        
+        echo '強制啟用所有 Workflow (Published)...'
+        # 透過 sqlite 指令直接把資料庫裡的 active 欄位改為 true
+        node -e "
+          const { execSync } = require('child_process');
+          try {
+            // 直接呼叫 n8n 內建的指令或列出 workflow ID 來啟用
+            execSync('n8n update:workflow --all --active=true', { stdio: 'inherit' });
+          } catch(err) {
+            console.log('更新狀態');
+          }
+        "
+        echo '全自動初始化完成！'
+# docker-compose down --remove-orphans
+#docker-compose up -d
+#docker logs -f iot_n8n_setup  
