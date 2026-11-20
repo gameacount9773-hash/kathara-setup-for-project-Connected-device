@@ -34,11 +34,7 @@ services:
     ports:
       - "5678:5678"
     environment:
-      - DB_TYPE=postgresdb
-      - DB_POSTGRESDB_HOST=timescaledb
-      - DB_POSTGRESDB_DATABASE=factory_db
-      - DB_POSTGRESDB_USER=postgres
-      - DB_POSTGRESDB_PASSWORD=1234
+      - N8N_ENCRYPTION_KEY=voltcycle-team-key-2026
     volumes:
       - ./n8n-data:/home/node/.n8n
       - ./shared:/shared
@@ -49,40 +45,27 @@ services:
       - |
         (
           if [ ! -f /home/node/.n8n/.initialized ]; then
-            echo "Waiting for n8n to start (15s)..."
-            sleep 15
+            echo "Waiting for n8n to start (25s)..."
+            sleep 25
 
             echo "Creating owner account..."
             node -e "fetch('http://localhost:5678/rest/owner/setup', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({email:'admin@local.test',firstName:'IoT',lastName:'Admin',password:'Admin1234'})}).catch(() => console.log('Owner account already exists'))"
 
-            if [ -f /shared/credentials.json ]; then
+            if [ -f /shared/credential.json ]; then
               echo "Importing credentials..."
-              n8n import:credentials --input=/shared/credentials.json
+              n8n import:credentials --input=/shared/credential.json || true
             fi
 
-            echo "Importing workflow..."
-            n8n import:workflow --input=/shared/flow.json
-
-            echo "Publishing workflow..."
-            node -e '
-              const fs = require("fs");
-              const { execSync } = require("child_process");
-              const data = JSON.parse(fs.readFileSync("/shared/flow.json", "utf8"));
-              const workflows = Array.isArray(data) ? data : [data];
-              for (const wf of workflows) {
-                if (wf.id) {
-                  execSync("n8n publish:workflow --id=" + wf.id, { stdio: "inherit" });
-                }
-              }
-            '
+            if [ -f /shared/flow.json ]; then
+              echo "Importing workflow..."
+              n8n import:workflow --input=/shared/flow.json || true
+            fi
 
             touch /home/node/.n8n/.initialized
             echo "Auto-initialization complete!"
           fi
         ) &
         exec n8n start
-
-# Common commands:
 # docker-compose down --remove-orphans
 # docker-compose up -d
-# docker logs -f iot_n8n
+# >> Remove-Item -Recurse -Force .\db-data, .\n8n-data, .\grafana-data, .\shared\grafana-data -ErrorAction SilentlyContinue

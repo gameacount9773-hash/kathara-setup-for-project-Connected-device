@@ -16,7 +16,7 @@
       ],
       "credentials": {
         "mqtt": {
-          "id": "MNar7LKNT57frOjV",
+          "id": "mqtt-gateway-cred",
           "name": "MQTT account"
         }
       }
@@ -52,7 +52,7 @@
       ],
       "credentials": {
         "postgres": {
-          "id": "2MIA13PjEBMIquSC",
+          "id": "postgres-writer-cred",
           "name": "Postgres account"
         }
       }
