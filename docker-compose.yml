@@ -45,16 +45,11 @@ services:
       - |
         (
           if [ ! -f /home/node/.n8n/.initialized ]; then
-            echo "Waiting for n8n to start (25s)..."
-            sleep 25
+            echo "Waiting for n8n to start (20s)..."
+            sleep 20
 
             echo "Creating owner account..."
-            node -e "fetch('http://localhost:5678/rest/owner/setup', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({email:'admin@local.test',firstName:'IoT',lastName:'Admin',password:'Admin1234'})}).catch(() => console.log('Owner account already exists'))"
-
-            if [ -f /shared/credential.json ]; then
-              echo "Importing credentials..."
-              n8n import:credentials --input=/shared/credential.json || true
-            fi
+            node -e "fetch('http://localhost:5678/rest/owner/setup', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({email:'admin@local.test',firstName:'IoT',lastName:'Admin',password:'Admin1234'})}).catch(() => {})"
 
             if [ -f /shared/flow.json ]; then
               echo "Importing workflow..."
