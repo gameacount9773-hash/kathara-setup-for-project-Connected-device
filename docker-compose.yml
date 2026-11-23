@@ -24,6 +24,7 @@ services:
     volumes:
       - ./grafana-data:/var/lib/grafana
       - ./shared/grafana-datasource.yml:/etc/grafana/provisioning/datasources/datasource.yml
+      - ./shared/grafana-dashboards:/etc/grafana/provisioning/dashboards
     depends_on:
       - timescaledb
 

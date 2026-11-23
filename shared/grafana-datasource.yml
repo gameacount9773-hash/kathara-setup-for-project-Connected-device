@@ -1,5 +1,14 @@
 apiVersion: 1
-
+providers:
+  - name: 'Factory Dashboards'
+    orgId: 1
+    folder: ''
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 10
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/provisioning/dashboards
 datasources:
   - name: Factory_DB
     type: grafana-postgresql-datasource
