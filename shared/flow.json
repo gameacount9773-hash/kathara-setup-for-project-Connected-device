@@ -23,7 +23,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const raw = $input.first().json.message;\nconst data = typeof raw === 'string' ? JSON.parse(raw) : raw;\n\n// 1. 取得感測器名稱\nconst sensorId = data.sensor_id || data.sensor_name || data.sensor;\n\n// 2. 依序尋找可能的數值或狀態欄位\nlet rawVal = data.value ?? data.temperature ?? data.weight ?? data.voltage \n          ?? data.vibration ?? data.co ?? data.h2 ?? data.hf \n          ?? data.smoke ?? data.magnetic ?? data.status ?? data.result \n          ?? data.condition ?? data.classification ?? data.class;\n\n// 若以上都沒對到，自動抓 JSON 裡第一個不是 sensor_id / seq / timestamp 的欄位\nif (rawVal === undefined) {\n  const ignoreKeys = new Set(['sensor_id', 'sensor_name', 'sensor', 'seq', 'sequence_number', 'timestamp', 'time', 'ip', 'mac']);\n  const valKey = Object.keys(data).find(k => !ignoreKeys.has(k));\n  if (valKey) rawVal = data[valKey];\n}\n\n// 3. 轉成數字（避免文字變成 NaN -> null）\nlet numVal = Number(rawVal);\nif (Number.isNaN(numVal)) {\n  const str = String(rawVal).toLowerCase();\n  if (['ok', 'normal', 'pass', 'true', 'yes', 'li-ion'].includes(str)) {\n    numVal = 1;\n  } else if (['damaged', 'error', 'rejected', 'fail', 'false', 'no'].includes(str)) {\n    numVal = 0;\n  } else {\n    numVal = -1; // 其他未知文字分類的預設代碼\n  }\n}\n\n\nreturn [{\n  json: {\n    sensor_id: sensorId,\n    seq: Number(data.seq ?? data.sequence_number ?? 0),\n    value: numVal,\n    battery_type: data.battery_type ?? null,\n    confidence_score: data.confidence_score !== undefined ? Number(data.confidence_score) : null,\n    raw_condition: data.condition ?? null\n  }\n}];"
+        "jsCode": "const raw = $input.first().json.message;\nconst data = typeof raw === 'string' ? JSON.parse(raw) : raw;\n\n// 1. 取得感測器名稱\nconst sensorId = data.sensor_id || data.sensor_name || data.sensor;\n\n// 2. 依序尋找可能的數值或狀態欄位\nlet rawVal = data.value ?? data.temperature ?? data.weight ?? data.voltage \n          ?? data.vibration ?? data.co ?? data.h2 ?? data.hf \n          ?? data.smoke ?? data.magnetic ?? data.status ?? data.result \n          ?? data.condition ?? data.classification ?? data.class;\n\n// 若以上都沒對到，自動抓 JSON 裡第一個不是 sensor_id / seq / timestamp 的欄位\nif (rawVal === undefined) {\n  const ignoreKeys = new Set(['sensor_id', 'sensor_name', 'sensor', 'seq', 'sequence_number', 'timestamp', 'time', 'ip', 'mac']);\n  const valKey = Object.keys(data).find(k => !ignoreKeys.has(k));\n  if (valKey) rawVal = data[valKey];\n}\n\n// 3. 轉成數字（避免文字變成 NaN -> null）\nlet numVal = Number(rawVal);\nif (Number.isNaN(numVal)) {\n  const str = String(rawVal).toLowerCase();\n  if (['ok', 'normal', 'pass', 'true', 'yes', 'li-ion'].includes(str)) {\n    numVal = 1;\n  } else if (['damaged', 'error', 'rejected', 'fail', 'false', 'no'].includes(str)) {\n    numVal = 0;\n  } else {\n    numVal = -1; // 其他未知文字分類的預設代碼\n  }\n}\n\nreturn [{\n  json: {\n    sensor_id: sensorId,\n    seq: Number(data.seq ?? data.sequence_number ?? 0),\n    value: numVal,\n    battery_type: data.battery_type ?? null,\n    confidence_score: data.confidence_score !== undefined ? Number(data.confidence_score) : null,\n    raw_condition: data.condition ?? null\n  }\n}];"
       },
       "id": "165806ba-fcce-4b09-95ad-4f80c88b83b5",
       "name": "Code1",
@@ -48,7 +48,30 @@
       "typeVersion": 2.3,
       "position": [
         448,
-        256
+        176
+      ],
+      "credentials": {
+        "postgres": {
+          "id": "postgres-writer-cred",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO alarm (sensor_id, time, level, value, threshold)\nSELECT\n  s.sensor_id,\n  NOW(),\n  CASE\n    WHEN st.alarm_limit IS NOT NULL AND $2 >= st.alarm_limit THEN 'alarm'\n    ELSE 'warning'\n  END,\n  $2,\n  CASE\n    WHEN st.alarm_limit IS NOT NULL AND $2 >= st.alarm_limit THEN st.alarm_limit\n    ELSE st.warning_limit\n  END\nFROM sensor s\nJOIN sensor_type st ON s.type_id = st.type_id\nWHERE s.name = $1\n  AND (\n    (st.alarm_limit IS NOT NULL AND $2 >= st.alarm_limit)\n    OR\n    (st.warning_limit IS NOT NULL AND $2 >= st.warning_limit)\n  );",
+        "options": {
+          "queryReplacement": "=={{ $json.sensor_id }}, {{ $json.value }}"
+        }
+      },
+      "id": "a9b8c7d6-e5f4-4321-8765-1234567890ab",
+      "name": "PostgreSQL Alarm",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.3,
+      "position": [
+        448,
+        352
       ],
       "credentials": {
         "postgres": {
@@ -76,6 +99,11 @@
         [
           {
             "node": "PostgreSQL1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "PostgreSQL Alarm",
             "type": "main",
             "index": 0
           }
