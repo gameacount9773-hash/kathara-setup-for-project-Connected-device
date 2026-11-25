@@ -8,7 +8,7 @@ MQTT_TOPIC = "voltcycle/safety/gas/02"
 
 
 def simulate_h2():
-    # 模擬氫氣濃度 (% LEL)：90% 正常範圍，10% 偶發異常偏高方便測試告警
+    # Simulated Hydrogen Concentration (% LEL): 90% (normal range), 10% (occasionally abnormally high—for alarm testing purposes)
     val = random.choices(
         [
             round(random.uniform(0.0, 1.5), 2),

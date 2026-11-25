@@ -1,3 +1,6 @@
+# ==========================================
+# 1. Interface & Subnet Configuration
+# ==========================================
 ip addr add 192.168.1.1/24 dev eth0
 ip link set up dev eth0
 ip addr add 192.168.10.1/24 dev eth1
@@ -6,28 +9,31 @@ ip addr add 192.168.20.1/24 dev eth2
 ip link set up dev eth2
 
 # ==========================================
-# 2. 啟動物聯網防火牆 (iptables)
+# 2. Firewall Configuration (iptables)
 # ==========================================
-# 清空可能存在的舊規則
+# Clear existing rules
 iptables -F
 iptables -X
 
-# A. 設定預設轉發策略為 DROP (預設全部封殺，沒有被允許的封包一律丟棄)
+# A. Set default FORWARD policy to DROP (block all unapproved traffic by default)
 iptables -P FORWARD DROP
 
-# B. 允許已經建立連線的封包合法回傳 (非常重要，不然連出去的封包回不來)
+# B. Allow established and related return traffic (stateful inspection)
 iptables -A FORWARD -m state --state ESTABLISHED,RELATED -j ACCEPT
 
-# C. 白名單 1：允許 Management 區 (eth0) 存取全區 (網管特權)
+# C. Whitelist 1: Allow Management VLAN (eth0) to access all zones (admin privilege)
 iptables -A FORWARD -i eth0 -j ACCEPT
 
-# D. 白名單 2：允許 Safety 區 (eth1) 連線到 Gateway 的 MQTT 服務 (Port 1883)
+# D. Whitelist 2: Allow Safety VLAN (eth1) to reach Gateway MQTT broker (Port 1883)
 iptables -A FORWARD -i eth1 -d 192.168.1.10 -p tcp --dport 1883 -j ACCEPT
 
-# E. 白名單 3：允許 Sorting 區 (eth2) 連線到 Gateway 的 MQTT 服務 (Port 1883)
+# E. Whitelist 3: Allow Sorting VLAN (eth2) to reach Gateway MQTT broker (Port 1883)
 iptables -A FORWARD -i eth2 -d 192.168.1.10 -p tcp --dport 1883 -j ACCEPT
 
-# 啟動 DHCP 伺服器並綁定所有 MAC 租約
+# ==========================================
+# 3. DHCP Server & Static MAC Reservations
+# ==========================================
+# Start dnsmasq and bind fixed IPs to authorized sensor MAC addresses
 dnsmasq \
   --interface=eth1 --dhcp-range=192.168.10.50,192.168.10.100,255.255.255.0,12h \
   --dhcp-host=02:42:c0:a8:0a:11,192.168.10.11,temp_sensor \
