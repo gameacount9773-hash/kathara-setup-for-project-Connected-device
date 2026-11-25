@@ -29,6 +29,7 @@ services:
       - timescaledb
 
   # 3. Workflow automation server (n8n + auto-initialization)
+  # 3. Workflow automation server (n8n + auto-initialization)
   n8n:
     image: n8nio/n8n:latest
     container_name: iot_n8n
@@ -52,9 +53,15 @@ services:
             echo "Creating owner account..."
             node -e "fetch('http://localhost:5678/rest/owner/setup', {method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({email:'admin@local.test',firstName:'IoT',lastName:'Admin',password:'Admin1234'})}).catch(() => {})"
 
+            if [ -f /shared/credentials.json ]; then
+              echo "Importing credentials..."
+              n8n import:credentials --input=/shared/credentials.json || true
+            fi
+
             if [ -f /shared/flow.json ]; then
-              echo "Importing workflow..."
+              echo "Importing and publishing workflow..."
               n8n import:workflow --input=/shared/flow.json || true
+              n8n publish:workflow --id=z3QREDnv5lNKubTQ || true
             fi
 
             touch /home/node/.n8n/.initialized
@@ -64,4 +71,6 @@ services:
         exec n8n start
 # docker-compose down --remove-orphans
 # docker-compose up -d
+#mkdir db-data, n8n-data, grafana-data
+#docker compose up -d
 # >> Remove-Item -Recurse -Force .\db-data, .\n8n-data, .\grafana-data, .\shared\grafana-data -ErrorAction SilentlyContinue
