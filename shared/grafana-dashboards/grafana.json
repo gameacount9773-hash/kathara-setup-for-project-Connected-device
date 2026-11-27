@@ -4,18 +4,24 @@
   "metadata": {
     "name": "adgpqhn",
     "namespace": "default",
-    "uid": "dcd9755d-1788-4a86-930e-19f095710348",
-    "resourceVersion": "1795527295880994",
-    "generation": 12,
-    "creationTimestamp": "2026-11-23T13:12:56Z",
+    "uid": "36e1a739-f7c2-4d27-94ef-f8d8020aabeb",
+    "resourceVersion": "1795789379622987",
+    "generation": 10,
+    "creationTimestamp": "2026-11-27T12:57:57Z",
     "labels": {
-      "grafana.app/deprecatedInternalID": "3658283665285120"
+      "grafana.app/deprecatedInternalID": "600464431923200"
     },
     "annotations": {
-      "grafana.app/createdBy": "user:eg56543evve2of",
+      "grafana.app/createdBy": "access-policy:service",
+      "grafana.app/managedBy": "classic-file-provisioning",
+      "grafana.app/managerAllowsEdits": "true",
+      "grafana.app/managerId": "Factory Dashboards",
       "grafana.app/saved-from-ui": "Grafana v13.3.1 (da3aa3ff57)",
-      "grafana.app/updatedBy": "user:eg56543evve2of",
-      "grafana.app/updatedTimestamp": "2026-11-24T13:34:55Z"
+      "grafana.app/sourceChecksum": "41fab4a13d69faca86077e1970a337ae",
+      "grafana.app/sourcePath": "/etc/grafana/provisioning/dashboards/grafana.json",
+      "grafana.app/sourceTimestamp": "1795688947000",
+      "grafana.app/updatedBy": "user:bg5ke4ztchn9ce",
+      "grafana.app/updatedTimestamp": "2026-11-27T14:22:59Z"
     }
   },
   "spec": {
@@ -118,6 +124,7 @@
               },
               "fieldConfig": {
                 "defaults": {
+                  "max": 70,
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
@@ -244,11 +251,11 @@
                 "legend": {
                   "displayMode": "list",
                   "placement": "bottom",
-                  "showLegend": true
+                  "showLegend": false
                 },
                 "mergeValues": true,
                 "rowHeight": 0.9,
-                "showValue": "auto",
+                "showValue": "never",
                 "tooltip": {
                   "hideZeros": false,
                   "mode": "single",
@@ -259,14 +266,23 @@
                 "defaults": {
                   "mappings": [
                     {
-                      "type": "value",
+                      "type": "range",
                       "options": {
-                        "0": {
+                        "from": 0,
+                        "to": 0.49,
+                        "result": {
                           "text": "clear",
                           "color": "dark-green",
                           "index": 0
-                        },
-                        "1": {
+                        }
+                      }
+                    },
+                    {
+                      "type": "range",
+                      "options": {
+                        "from": 0.5,
+                        "to": 1,
+                        "result": {
                           "text": "detected",
                           "color": "dark-red",
                           "index": 1
@@ -548,7 +564,7 @@
                       "tooltip": false,
                       "viz": false
                     },
-                    "insertNulls": false,
+                    "insertNulls": 60000,
                     "lineInterpolation": "linear",
                     "lineWidth": 1,
                     "pointSize": 5,
@@ -648,6 +664,7 @@
               },
               "fieldConfig": {
                 "defaults": {
+                  "max": 5,
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
@@ -933,6 +950,122 @@
                     "thresholdsStyle": {
                       "mode": "off"
                     }
+                  }
+                },
+                "overrides": []
+              }
+            }
+          }
+        }
+      },
+      "panel-16": {
+        "kind": "Panel",
+        "spec": {
+          "id": 16,
+          "title": "camera confidence",
+          "description": "",
+          "links": [],
+          "data": {
+            "kind": "QueryGroup",
+            "spec": {
+              "queries": [
+                {
+                  "kind": "PanelQuery",
+                  "spec": {
+                    "query": {
+                      "kind": "DataQuery",
+                      "group": "grafana-postgresql-datasource",
+                      "version": "v0",
+                      "datasource": {
+                        "name": "factory-postgres-ds"
+                      },
+                      "spec": {
+                        "dataset": "factory_db",
+                        "editorMode": "code",
+                        "format": "table",
+                        "rawQuery": true,
+                        "rawSql": "SELECT avg(m.confidence_score) AS confidence\r\nFROM measurement m\r\nJOIN sensor s ON s.sensor_id = m.sensor_id\r\nWHERE s.name = 'vision_01' AND $__timeFilter(m.time);",
+                        "sql": {
+                          "columns": [
+                            {
+                              "parameters": [],
+                              "type": "function"
+                            }
+                          ],
+                          "groupBy": [
+                            {
+                              "property": {
+                                "type": "string"
+                              },
+                              "type": "groupBy"
+                            }
+                          ],
+                          "limit": 50
+                        }
+                      }
+                    },
+                    "refId": "A",
+                    "hidden": false
+                  }
+                }
+              ],
+              "transformations": [],
+              "queryOptions": {}
+            }
+          },
+          "vizConfig": {
+            "kind": "VizConfig",
+            "group": "gauge",
+            "version": "13.3.1",
+            "spec": {
+              "options": {
+                "barShape": "flat",
+                "barWidthFactor": 0.5,
+                "effects": {
+                  "barGlow": false,
+                  "centerGlow": false,
+                  "gradient": true
+                },
+                "endpointMarker": "point",
+                "minVizHeight": 75,
+                "minVizWidth": 75,
+                "orientation": "auto",
+                "reduceOptions": {
+                  "calcs": [
+                    "lastNotNull"
+                  ],
+                  "fields": "",
+                  "values": false
+                },
+                "segmentCount": 1,
+                "segmentSpacing": 0.3,
+                "shape": "gauge",
+                "showThresholdLabels": false,
+                "showThresholdMarkers": true,
+                "sizing": "auto",
+                "sparkline": true,
+                "textMode": "auto"
+              },
+              "fieldConfig": {
+                "defaults": {
+                  "unit": "percent",
+                  "min": 0,
+                  "max": 100,
+                  "thresholds": {
+                    "mode": "absolute",
+                    "steps": [
+                      {
+                        "value": 0,
+                        "color": "dark-yellow"
+                      },
+                      {
+                        "value": 90,
+                        "color": "dark-green"
+                      }
+                    ]
+                  },
+                  "color": {
+                    "mode": "thresholds"
                   }
                 },
                 "overrides": []
@@ -1626,6 +1759,7 @@
               },
               "fieldConfig": {
                 "defaults": {
+                  "max": 250,
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
@@ -1762,6 +1896,7 @@
               },
               "fieldConfig": {
                 "defaults": {
+                  "max": 8,
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
@@ -1798,7 +1933,7 @@
                       "tooltip": false,
                       "viz": false
                     },
-                    "insertNulls": false,
+                    "insertNulls": 60000,
                     "lineInterpolation": "linear",
                     "lineWidth": 1,
                     "pointSize": 5,
@@ -1898,6 +2033,7 @@
               },
               "fieldConfig": {
                 "defaults": {
+                  "max": 30,
                   "thresholds": {
                     "mode": "absolute",
                     "steps": [
@@ -1906,7 +2042,7 @@
                         "color": "green"
                       },
                       {
-                        "value": 25,
+                        "value": 10,
                         "color": "#EAB839"
                       },
                       {
@@ -1934,7 +2070,7 @@
                       "tooltip": false,
                       "viz": false
                     },
-                    "insertNulls": false,
+                    "insertNulls": 60000,
                     "lineInterpolation": "linear",
                     "lineWidth": 1,
                     "pointSize": 5,
@@ -2101,6 +2237,15 @@
                 "name": "panel-15"
               }
             }
+          },
+          {
+            "kind": "AutoGridLayoutItem",
+            "spec": {
+              "element": {
+                "kind": "ElementReference",
+                "name": "panel-16"
+              }
+            }
           }
         ]
       }
@@ -2111,7 +2256,7 @@
     "tags": [],
     "timeSettings": {
       "timezone": "browser",
-      "from": "now-2d",
+      "from": "now-1h",
       "to": "now",
       "autoRefresh": "",
       "autoRefreshIntervals": [
